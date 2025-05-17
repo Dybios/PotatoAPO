@@ -1,7 +1,12 @@
 # PotatoAPO
-This repo creates a Windows APO DLL which can be registered in the capture endpoint to process the audio data and suppress noise (based on Xiph's RNNoise). The Visual Studio solution is based on the sample example of MinimalAPO provided with EqualizerAPO's application [developer documentation](https://sourceforge.net/p/equalizerapo/wiki/Developer%20documentation/). 
+This repo creates a Windows APO DLL which can be registered in SFX chain of the capture (or render) endpoint to process any audio data. The Visual Studio solution is based on the sample example of MinimalAPO provided with EqualizerAPO's application [developer documentation](https://sourceforge.net/p/equalizerapo/wiki/Developer%20documentation/). 
 
-Following steps detail the way the DLL can be registered and unregistered. 
+>**IMPORTANT**
+>
+>This DLL does not apply any effects and acts only as an interface. You will need to build and install separate processing plugin DLLs to appropriate paths to hear the audible effects. For a simple example of silencing an audio output, refer to the [silence-example](https://github.com/Dybios/PotatoPlugins/tree/silence-example)
+>demo provided in the PotatoPlugins repository. Follow the steps provided there to build and deploy the DLLs.
+
+Following steps detail the way the PotatoAPO DLL can be registered and unregistered. 
 
 NOTE: Please make sure to backup the registry key and its values before making any changes.
 
