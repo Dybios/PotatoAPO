@@ -21,7 +21,7 @@
     <ClCompile Include="DllMain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="PotatoVoiceAPO.cpp">
+    <ClCompile Include="PotatoAPO.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="stdafx.cpp">
@@ -32,7 +32,7 @@
     <ClInclude Include="ClassFactory.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="PotatoVoiceAPO.h">
+    <ClInclude Include="PotatoAPO.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="stdafx.h">
@@ -43,7 +43,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="PotatoVoiceAPO.def">
+    <None Include="PotatoAPO.def">
       <Filter>Source Files</Filter>
     </None>
     <None Include="README.md" />

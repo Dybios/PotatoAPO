@@ -22,7 +22,7 @@
     <ProjectGuid>{9389A82A-2DD8-4637-BDF1-FBB88ECDBA1F}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>MinimalAPO</RootNamespace>
-    <ProjectName>PotatoVoiceAPO</ProjectName>
+    <ProjectName>PotatoAPO</ProjectName>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -73,14 +73,14 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <LibraryPath>.\rnnoise\lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <LibraryPath>.\rnnoise\lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -104,13 +104,13 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;MINIMALAPO_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>.\rnnoise\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <ModuleDefinitionFile>PotatoVoiceAPO.def</ModuleDefinitionFile>
-      <AdditionalDependencies>AudioBaseProcessingObject.lib;audiomediatypecrt.lib;rnnoise.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ModuleDefinitionFile>PotatoAPO.def</ModuleDefinitionFile>
+      <AdditionalDependencies>AudioBaseProcessingObject.lib;audiomediatypecrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -141,7 +141,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;MINIMALAPO_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>.\rnnoise\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
@@ -149,14 +149,14 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <ModuleDefinitionFile>PotatoVoiceAPO.def</ModuleDefinitionFile>
-      <AdditionalDependencies>AudioBaseProcessingObject.lib;audiomediatypecrt.lib;rnnoise.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ModuleDefinitionFile>PotatoAPO.def</ModuleDefinitionFile>
+      <AdditionalDependencies>AudioBaseProcessingObject.lib;audiomediatypecrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ClassFactory.cpp" />
     <ClCompile Include="DllMain.cpp" />
-    <ClCompile Include="PotatoVoiceAPO.cpp" />
+    <ClCompile Include="PotatoAPO.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -166,12 +166,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ClassFactory.h" />
-    <ClInclude Include="PotatoVoiceAPO.h" />
+    <ClInclude Include="PotatoAPO.h" />
     <ClInclude Include="rnnoise\include\rnnoise.h" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="PotatoVoiceAPO.def" />
+    <None Include="PotatoAPO.def" />
     <None Include="README.md" />
   </ItemGroup>
   <ItemGroup>

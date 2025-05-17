@@ -3,7 +3,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-#include "PotatoVoiceAPO.h"
+#include "PotatoAPO.h"
 #include "ClassFactory.h"
 
 using namespace std;
@@ -20,7 +20,7 @@ BOOL WINAPI DllMain(HINSTANCE hModule, DWORD dwReason, void* lpReserved)
 
 STDAPI DllCanUnloadNow()
 {
-	if (PotatoVoiceAPO::instCount == 0 && ClassFactory::lockCount == 0)
+	if (PotatoAPO::instCount == 0 && ClassFactory::lockCount == 0)
 		return S_OK;
 	else
 		return S_FALSE;
@@ -28,7 +28,7 @@ STDAPI DllCanUnloadNow()
 
 STDAPI DllGetClassObject(const CLSID& clsid, const IID& iid, void** ppv)
 {
-	if (clsid != __uuidof(PotatoVoiceAPO))
+	if (clsid != __uuidof(PotatoAPO))
 		return CLASS_E_CLASSNOTAVAILABLE;
 
 	ClassFactory* factory = new ClassFactory();
@@ -46,15 +46,15 @@ STDAPI DllRegisterServer()
 	wchar_t filename[1024];
 	GetModuleFileNameW(hModule, filename, sizeof(filename) / sizeof(wchar_t));
 
-	HRESULT hr = RegisterAPO(PotatoVoiceAPO::regProperties);
+	HRESULT hr = RegisterAPO(PotatoAPO::regProperties);
 	if (FAILED(hr))
 	{
-		UnregisterAPO(__uuidof(PotatoVoiceAPO));
+		UnregisterAPO(__uuidof(PotatoAPO));
 		return hr;
 	}
 
 	wchar_t* guid;
-	StringFromCLSID(__uuidof(PotatoVoiceAPO), &guid);
+	StringFromCLSID(__uuidof(PotatoAPO), &guid);
 	wstring guidString(guid);
 	CoTaskMemFree(guid);
 
@@ -77,14 +77,14 @@ STDAPI DllRegisterServer()
 STDAPI DllUnregisterServer()
 {
 	wchar_t* guid;
-	StringFromCLSID(__uuidof(PotatoVoiceAPO), &guid);
+	StringFromCLSID(__uuidof(PotatoAPO), &guid);
 	wstring guidString(guid);
 	CoTaskMemFree(guid);
 
 	RegDeleteKeyExW(HKEY_LOCAL_MACHINE, (L"SOFTWARE\\Classes\\CLSID\\" + guidString + L"\\InprocServer32").c_str(), KEY_WOW64_64KEY, 0);
 	RegDeleteKeyExW(HKEY_LOCAL_MACHINE, (L"SOFTWARE\\Classes\\CLSID\\" + guidString).c_str(), KEY_WOW64_64KEY, 0);
 
-	HRESULT hr = UnregisterAPO(__uuidof(PotatoVoiceAPO));
+	HRESULT hr = UnregisterAPO(__uuidof(PotatoAPO));
 
 	return hr;
 }

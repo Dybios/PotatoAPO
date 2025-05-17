@@ -1,5 +1,5 @@
 #include "stdafx.h"
-#include "PotatoVoiceAPO.h"
+#include "PotatoAPO.h"
 #include "ClassFactory.h"
 
 long ClassFactory::lockCount = 0;
@@ -44,7 +44,7 @@ HRESULT __stdcall ClassFactory::CreateInstance(IUnknown* pUnknownOuter, const II
 	if (pUnknownOuter != NULL && iid != __uuidof(IUnknown))
 		return E_NOINTERFACE;
 
-	PotatoVoiceAPO* apo = new PotatoVoiceAPO(pUnknownOuter);
+	PotatoAPO* apo = new PotatoAPO(pUnknownOuter);
 	if (apo == NULL)
 		return E_OUTOFMEMORY;
 

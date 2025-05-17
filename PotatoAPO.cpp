@@ -1,16 +1,15 @@
 #include "stdafx.h"
-#include "PotatoVoiceAPO.h"
+#include "PotatoAPO.h"
 #include <algorithm>
-#include <codecvt>
 
 using namespace std;
 
-long PotatoVoiceAPO::instCount = 0;
-const CRegAPOProperties<1> PotatoVoiceAPO::regProperties(
-	__uuidof(PotatoVoiceAPO), L"PotatoVoiceAPO", L"", 1, 0, __uuidof(IAudioProcessingObject),
+long PotatoAPO::instCount = 0;
+const CRegAPOProperties<1> PotatoAPO::regProperties(
+	__uuidof(PotatoAPO), L"PotatoAPO", L"", 1, 0, __uuidof(IAudioProcessingObject),
 	(APO_FLAG)(APO_FLAG_SAMPLESPERFRAME_MUST_MATCH | APO_FLAG_FRAMESPERSECOND_MUST_MATCH | APO_FLAG_BITSPERSAMPLE_MUST_MATCH | APO_FLAG_INPLACE));
 
-PotatoVoiceAPO::PotatoVoiceAPO(IUnknown* pUnkOuter)
+PotatoAPO::PotatoAPO(IUnknown* pUnkOuter)
 	: CBaseAudioProcessingObject(regProperties)
 {
 	refCount = 1;
@@ -22,27 +21,27 @@ PotatoVoiceAPO::PotatoVoiceAPO(IUnknown* pUnkOuter)
 	InterlockedIncrement(&instCount);
 }
 
-PotatoVoiceAPO::~PotatoVoiceAPO()
+PotatoAPO::~PotatoAPO()
 {
 	InterlockedDecrement(&instCount);
 }
 
-HRESULT PotatoVoiceAPO::QueryInterface(const IID& iid, void** ppv)
+HRESULT PotatoAPO::QueryInterface(const IID& iid, void** ppv)
 {
 	return pUnkOuter->QueryInterface(iid, ppv);
 }
 
-ULONG PotatoVoiceAPO::AddRef()
+ULONG PotatoAPO::AddRef()
 {
 	return pUnkOuter->AddRef();
 }
 
-ULONG PotatoVoiceAPO::Release()
+ULONG PotatoAPO::Release()
 {
 	return pUnkOuter->Release();
 }
 
-HRESULT PotatoVoiceAPO::GetLatency(HNSTIME* pTime)
+HRESULT PotatoAPO::GetLatency(HNSTIME* pTime)
 {
 	if (!pTime)
 		return E_POINTER;
@@ -55,7 +54,7 @@ HRESULT PotatoVoiceAPO::GetLatency(HNSTIME* pTime)
 	return S_OK;
 }
 
-HRESULT PotatoVoiceAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
+HRESULT PotatoAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 {
 	if ((NULL == pbyData) && (0 != cbDataSize))
 		return E_INVALIDARG;
@@ -67,7 +66,7 @@ HRESULT PotatoVoiceAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 	return S_OK;
 }
 
-HRESULT PotatoVoiceAPO::IsInputFormatSupported(IAudioMediaType* pOutputFormat,
+HRESULT PotatoAPO::IsInputFormatSupported(IAudioMediaType* pOutputFormat,
 	IAudioMediaType* pRequestedInputFormat, IAudioMediaType** ppSupportedInputFormat)
 {
 	if (!pRequestedInputFormat)
@@ -92,7 +91,7 @@ HRESULT PotatoVoiceAPO::IsInputFormatSupported(IAudioMediaType* pOutputFormat,
 	return hr;
 }
 
-HRESULT PotatoVoiceAPO::LockForProcess(UINT32 u32NumInputConnections,
+HRESULT PotatoAPO::LockForProcess(UINT32 u32NumInputConnections,
 	APO_CONNECTION_DESCRIPTOR** ppInputConnections, UINT32 u32NumOutputConnections,
 	APO_CONNECTION_DESCRIPTOR** ppOutputConnections)
 {
@@ -126,8 +125,14 @@ HRESULT PotatoVoiceAPO::LockForProcess(UINT32 u32NumInputConnections,
 	}
 
 	// Load the effects DLL before locking for processing
-	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-	std::wstring effectsDll = converter.from_bytes(dynamicProcessDllFullPath);
+	std::wstring effectsDll;
+	int wideCharSize = MultiByteToWideChar(CP_UTF8, 0, dynamicProcessDllFullPath.c_str(), -1, NULL, 0);
+	wchar_t* wideCharString = (wchar_t*)malloc(wideCharSize * sizeof(wchar_t));
+	if (wideCharString) {
+		MultiByteToWideChar(CP_UTF8, 0, dynamicProcessDllFullPath.c_str(), -1, wideCharString, wideCharSize);
+		effectsDll = wideCharString;
+		free(wideCharString);
+	}
 	hinstLib = LoadLibrary(effectsDll.c_str());
 	if (hinstLib != NULL) {
 		// Initialize the process DLL
@@ -141,7 +146,7 @@ HRESULT PotatoVoiceAPO::LockForProcess(UINT32 u32NumInputConnections,
 	return hr;
 }
 
-HRESULT PotatoVoiceAPO::UnlockForProcess()
+HRESULT PotatoAPO::UnlockForProcess()
 {
 	// Unload and free the effects DLL after deinitializing it on unlock
 	if (hinstLib != NULL) {
@@ -155,7 +160,7 @@ HRESULT PotatoVoiceAPO::UnlockForProcess()
 }
 
 #pragma AVRT_CODE_BEGIN
-void PotatoVoiceAPO::APOProcess(UINT32 u32NumInputConnections,
+void PotatoAPO::APOProcess(UINT32 u32NumInputConnections,
 	APO_CONNECTION_PROPERTY** ppInputConnections, UINT32 u32NumOutputConnections,
 	APO_CONNECTION_PROPERTY** ppOutputConnections)
 {
@@ -192,7 +197,7 @@ void PotatoVoiceAPO::APOProcess(UINT32 u32NumInputConnections,
 }
 #pragma AVRT_CODE_END
 
-HRESULT PotatoVoiceAPO::NonDelegatingQueryInterface(const IID& iid, void** ppv)
+HRESULT PotatoAPO::NonDelegatingQueryInterface(const IID& iid, void** ppv)
 {
 	if (iid == __uuidof(IUnknown))
 		*ppv = static_cast<INonDelegatingUnknown*>(this);
@@ -214,12 +219,12 @@ HRESULT PotatoVoiceAPO::NonDelegatingQueryInterface(const IID& iid, void** ppv)
 	return S_OK;
 }
 
-ULONG PotatoVoiceAPO::NonDelegatingAddRef()
+ULONG PotatoAPO::NonDelegatingAddRef()
 {
 	return InterlockedIncrement(&refCount);
 }
 
-ULONG PotatoVoiceAPO::NonDelegatingRelease()
+ULONG PotatoAPO::NonDelegatingRelease()
 {
 	if (InterlockedDecrement(&refCount) == 0)
 	{

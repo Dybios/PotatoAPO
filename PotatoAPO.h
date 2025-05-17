@@ -7,7 +7,6 @@
 #include <vector>
 
 #include "atltrace.h"
-#include "rnnoise.h"
 
 // Fixed path to always check if any hot-swappable modules exist
 static const LPCSTR dynamicProcessDllPath = "C:\\Users\\Public\\PotatoEffects\\";
@@ -23,11 +22,11 @@ class INonDelegatingUnknown
 };
 
 class __declspec (uuid("46BB25C9-3D22-4ECE-9481-148C12B0B577"))
-	PotatoVoiceAPO : public CBaseAudioProcessingObject, public IAudioSystemEffects, public INonDelegatingUnknown
+	PotatoAPO : public CBaseAudioProcessingObject, public IAudioSystemEffects, public INonDelegatingUnknown
 {
 public:
-	PotatoVoiceAPO(IUnknown * pUnkOuter);
-	virtual ~PotatoVoiceAPO();
+	PotatoAPO(IUnknown * pUnkOuter);
+	virtual ~PotatoAPO();
 
 	// IUnknown
 	virtual HRESULT __stdcall QueryInterface(const IID& iid, void** ppv);
