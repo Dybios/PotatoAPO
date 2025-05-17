@@ -6,9 +6,14 @@
 #include <BaseAudioProcessingObject.h>
 #include <vector>
 
+#include "atltrace.h"
 #include "rnnoise.h"
 
-#define FRAME_SIZE 480 // Keeping same as rnnoise max frame count
+// Fixed path to always check if any hot-swappable modules exist
+static const LPCSTR dynamicProcessDllPath = "C:\\Users\\Public\\PotatoEffects\\";
+typedef void (*Init)();  // Function prototype to initialize any effect parameters
+typedef void (*ProcessEffect)(float *, float *, UINT32, UINT32);  // Function prototype to call for processing
+typedef void (*Deinit)();  // Function prototype to deinitialize the effect parameters
 
 class INonDelegatingUnknown
 {
@@ -59,5 +64,5 @@ private:
 	IUnknown* pUnkOuter;
 	unsigned channelCount = 0;
 
-	DenoiseState* st = nullptr;
+	HINSTANCE hinstLib = NULL;
 };

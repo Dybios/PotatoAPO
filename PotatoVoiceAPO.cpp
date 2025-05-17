@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "PotatoVoiceAPO.h"
 #include <algorithm>
+#include <codecvt>
 
 using namespace std;
 
@@ -63,9 +64,6 @@ HRESULT PotatoVoiceAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 	if (cbDataSize != sizeof(APOInitSystemEffects))
 		return E_INVALIDARG;
 
-	// Initialize the default noise model
-	st = rnnoise_create(NULL);
-
 	return S_OK;
 }
 
@@ -112,11 +110,47 @@ HRESULT PotatoVoiceAPO::LockForProcess(UINT32 u32NumInputConnections,
 
 	channelCount = outFormat.dwSamplesPerFrame;
 
+	// Find the effects DLL in the C:\Users\Public\PotatoEffects directory
+	HANDLE hFind;
+	WIN32_FIND_DATAA data;
+	std::string dllFilename = "*.dll";
+	std::string dynamicProcessDllFullPath = dynamicProcessDllPath + dllFilename;
+
+	hFind = FindFirstFileA(dynamicProcessDllFullPath.c_str(), &data);
+	if (hFind != INVALID_HANDLE_VALUE) {
+		dynamicProcessDllFullPath.clear();
+		dynamicProcessDllFullPath = dynamicProcessDllPath;
+		dynamicProcessDllFullPath += data.cFileName;
+		ATLTRACE("\nLockForProcess: PotatoEffect: Found DLL at %s\n", dynamicProcessDllFullPath.c_str());
+		FindClose(hFind);
+	}
+
+	// Load the effects DLL before locking for processing
+	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+	std::wstring effectsDll = converter.from_bytes(dynamicProcessDllFullPath);
+	hinstLib = LoadLibrary(effectsDll.c_str());
+	if (hinstLib != NULL) {
+		// Initialize the process DLL
+		Init init = (Init)GetProcAddress(hinstLib, "Init"); 
+		ATLTRACE("\nLockForProcess: PotatoEffect: Called Init Function\n");
+	}
+	else {
+		ATLTRACE("\nLockForProcess: PotatoEffect: Could not load DLL\n");
+	}
+
 	return hr;
 }
 
 HRESULT PotatoVoiceAPO::UnlockForProcess()
 {
+	// Unload and free the effects DLL after deinitializing it on unlock
+	if (hinstLib != NULL) {
+		Deinit deinit = (Deinit)GetProcAddress(hinstLib, "Deinit"); // Deinitialize the process DLL
+		ATLTRACE("\nUnlockForProcess: PotatoEffect: Called Deinit\n");
+
+		FreeLibrary(hinstLib);
+		ATLTRACE("\nUnlockForProcess: PotatoEffect: Unloaded and freed DLL\n");
+	}
 	return CBaseAudioProcessingObject::UnlockForProcess();
 }
 
@@ -131,22 +165,17 @@ void PotatoVoiceAPO::APOProcess(UINT32 u32NumInputConnections,
 		{
 			float* inputFrames = reinterpret_cast<float*>(ppInputConnections[0]->pBuffer);
 			float* outputFrames = reinterpret_cast<float*>(ppOutputConnections[0]->pBuffer);
-			float processBuffer[FRAME_SIZE];
-			unsigned int bufFrameCount = 0;
 
-			for (int i = 0; i < ppInputConnections[0]->u32ValidFrameCount; i++) {
-				processBuffer[bufFrameCount] = inputFrames[i * channelCount];
-				bufFrameCount++;
-
-				if (i == FRAME_SIZE) {
-					// Process a full frame
-					rnnoise_process_frame(st, processBuffer, processBuffer);
-
-					// Copy processed frame back to the output buffer
-					outputFrames[i * channelCount] = processBuffer[i];
-
-					bufFrameCount = 0; // reset the buffer index
+			if (hinstLib != NULL) {
+				ProcessEffect processFx = (ProcessEffect)GetProcAddress(hinstLib, "ProcessEffect");
+				if (processFx != NULL) {
+					processFx(inputFrames, outputFrames, channelCount, ppInputConnections[0]->u32ValidFrameCount);
+					//ATLTRACE("\nAPOProcess: PotatoEffect: Called ProcessEffect\n");
 				}
+			}
+			else {
+				// Copy the input as is to output
+				memcpy(outputFrames, inputFrames, ppOutputConnections[0]->u32ValidFrameCount);
 			}
 
 			ppOutputConnections[0]->u32ValidFrameCount = ppInputConnections[0]->u32ValidFrameCount;

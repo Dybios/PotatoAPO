@@ -38,14 +38,17 @@
     <ClInclude Include="stdafx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="rnnoise\include\rnnoise.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="PotatoVoiceAPO.def">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="README.md" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="Readme.txt" />
     <Text Include="License.txt" />
   </ItemGroup>
 </Project>

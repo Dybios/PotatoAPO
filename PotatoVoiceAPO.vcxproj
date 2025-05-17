@@ -172,10 +172,10 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="PotatoVoiceAPO.def" />
+    <None Include="README.md" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="License.txt" />
-    <Text Include="Readme.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
