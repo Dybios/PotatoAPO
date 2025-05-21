@@ -107,9 +107,9 @@ HRESULT PotatoAPO::LockForProcess(UINT32 u32NumInputConnections,
 	if (FAILED(hr))
 		return hr;
 
-	channelCount = outFormat.dwSamplesPerFrame;
+	// Load all effects DLL in the C:\Users\Public\PotatoEffects directory
+	ATLTRACE("Attempting to load plugins...\n");
 
-	// Find the effects DLL in the C:\Users\Public\PotatoEffects directory
 	HANDLE hFind;
 	WIN32_FIND_DATAA data;
 	std::string dllFilename = "*.dll";
@@ -123,39 +123,21 @@ HRESULT PotatoAPO::LockForProcess(UINT32 u32NumInputConnections,
 		ATLTRACE("\nLockForProcess: PotatoEffect: Found DLL at %s\n", dynamicProcessDllFullPath.c_str());
 		FindClose(hFind);
 	}
+	pluginManager.loadPlugin(dynamicProcessDllFullPath);
 
-	// Load the effects DLL before locking for processing
-	std::wstring effectsDll;
-	int wideCharSize = MultiByteToWideChar(CP_UTF8, 0, dynamicProcessDllFullPath.c_str(), -1, NULL, 0);
-	wchar_t* wideCharString = (wchar_t*)malloc(wideCharSize * sizeof(wchar_t));
-	if (wideCharString) {
-		MultiByteToWideChar(CP_UTF8, 0, dynamicProcessDllFullPath.c_str(), -1, wideCharString, wideCharSize);
-		effectsDll = wideCharString;
-		free(wideCharString);
-	}
-	hinstLib = LoadLibrary(effectsDll.c_str());
-	if (hinstLib != NULL) {
-		// Initialize the process DLL
-		Init init = (Init)GetProcAddress(hinstLib, "Init"); 
-		ATLTRACE("\nLockForProcess: PotatoEffect: Called Init Function\n");
-	}
-	else {
-		ATLTRACE("\nLockForProcess: PotatoEffect: Could not load DLL\n");
-	}
+	// Create a new context for processing pipeline
+	context = std::make_unique<ProcessContext>();
+	context->numChannels = outFormat.dwSamplesPerFrame; // Number of channels
 
 	return hr;
 }
 
 HRESULT PotatoAPO::UnlockForProcess()
 {
-	// Unload and free the effects DLL after deinitializing it on unlock
-	if (hinstLib != NULL) {
-		Deinit deinit = (Deinit)GetProcAddress(hinstLib, "Deinit"); // Deinitialize the process DLL
-		ATLTRACE("\nUnlockForProcess: PotatoEffect: Called Deinit\n");
-
-		FreeLibrary(hinstLib);
-		ATLTRACE("\nUnlockForProcess: PotatoEffect: Unloaded and freed DLL\n");
-	}
+	// Reset the context and unload all plugins on unlock
+	context.reset();
+	pluginManager.unloadAllPlugins();
+	ATLTRACE("\nUnlockForProcess: PotatoEffect: Unloaded all processing DLLs\n");
 	return CBaseAudioProcessingObject::UnlockForProcess();
 }
 
@@ -168,19 +150,15 @@ void PotatoAPO::APOProcess(UINT32 u32NumInputConnections,
 	{
 	case BUFFER_VALID:
 		{
-			float* inputFrames = reinterpret_cast<float*>(ppInputConnections[0]->pBuffer);
-			float* outputFrames = reinterpret_cast<float*>(ppOutputConnections[0]->pBuffer);
+			context->inputFrames = reinterpret_cast<float*>(ppInputConnections[0]->pBuffer);
+			context->outputFrames = reinterpret_cast<float*>(ppOutputConnections[0]->pBuffer);
+			context->validFrameCount = ppInputConnections[0]->u32ValidFrameCount;
 
-			if (hinstLib != NULL) {
-				ProcessEffect processFx = (ProcessEffect)GetProcAddress(hinstLib, "ProcessEffect");
-				if (processFx != NULL) {
-					processFx(inputFrames, outputFrames, channelCount, ppInputConnections[0]->u32ValidFrameCount);
-					//ATLTRACE("\nAPOProcess: PotatoEffect: Called ProcessEffect\n");
-				}
-			}
-			else {
+			if (!pluginManager.getAllPlugins().empty()) {
+				executePipeline(*context);
+			} else {
 				// Copy the input as is to output
-				memcpy(outputFrames, inputFrames, ppOutputConnections[0]->u32ValidFrameCount);
+				memcpy(context->outputFrames, context->inputFrames, context->validFrameCount);
 			}
 
 			ppOutputConnections[0]->u32ValidFrameCount = ppInputConnections[0]->u32ValidFrameCount;
@@ -233,4 +211,17 @@ ULONG PotatoAPO::NonDelegatingRelease()
 	}
 
 	return refCount;
+}
+
+void PotatoAPO::executePipeline(ProcessContext& context) {
+	for (IPotatoPlugin* plugin : pluginManager.getAllPlugins()) {
+		if (!plugin) continue;
+
+		PluginStatus status = plugin->process(context);
+		if (status == PluginStatus::FAILURE) {
+			ATLTRACE("Failed processing plugin %s\n", plugin->getName());
+			continue; // Processing failed; skip it and continue to next plugin
+		}
+		// If status is CONTINUE, proceed to the next plugin anyway.
+	}
 }
