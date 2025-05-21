@@ -157,6 +157,7 @@
     <ClCompile Include="ClassFactory.cpp" />
     <ClCompile Include="DllMain.cpp" />
     <ClCompile Include="PotatoAPO.cpp" />
+    <ClCompile Include="PotatoPluginManager.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -166,7 +167,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ClassFactory.h" />
+    <ClInclude Include="IPotatoPlugin.h" />
     <ClInclude Include="PotatoAPO.h" />
+    <ClInclude Include="ProcessContext.h" />
+    <ClInclude Include="PotatoPluginManager.h" />
     <ClInclude Include="rnnoise\include\rnnoise.h" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>

@@ -6,13 +6,11 @@
 #include <BaseAudioProcessingObject.h>
 #include <vector>
 
-#include "atltrace.h"
+#include "PotatoPluginManager.h"
+#include "ProcessContext.h"
 
 // Fixed path to always check if any hot-swappable modules exist
 static const LPCSTR dynamicProcessDllPath = "C:\\Users\\Public\\PotatoEffects\\";
-typedef void (*Init)();  // Function prototype to initialize any effect parameters
-typedef void (*ProcessEffect)(float *, float *, UINT32, UINT32);  // Function prototype to call for processing
-typedef void (*Deinit)();  // Function prototype to deinitialize the effect parameters
 
 class INonDelegatingUnknown
 {
@@ -61,7 +59,8 @@ public:
 private:
 	long refCount;
 	IUnknown* pUnkOuter;
-	unsigned channelCount = 0;
 
-	HINSTANCE hinstLib = NULL;
+	std::unique_ptr<ProcessContext> context;
+	PotatoPluginManager pluginManager;
+	void executePipeline(ProcessContext& context);
 };
