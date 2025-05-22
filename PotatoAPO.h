@@ -10,7 +10,7 @@
 #include "ProcessContext.h"
 
 // Fixed path to always check if any hot-swappable modules exist
-static const LPCSTR dynamicProcessDllPath = "C:\\Users\\Public\\PotatoEffects\\";
+static const LPCSTR dllParentPath = "C:\\Users\\Public\\PotatoEffects\\";
 
 class INonDelegatingUnknown
 {
@@ -60,7 +60,8 @@ private:
 	long refCount;
 	IUnknown* pUnkOuter;
 
-	std::unique_ptr<ProcessContext> context;
+	ProcessContext context;
 	PotatoPluginManager pluginManager;
-	void executePipeline(ProcessContext& context);
+	std::vector<std::string> dllFiles;
+	void executePipeline();
 };

@@ -108,26 +108,35 @@ HRESULT PotatoAPO::LockForProcess(UINT32 u32NumInputConnections,
 		return hr;
 
 	// Load all effects DLL in the C:\Users\Public\PotatoEffects directory
-	ATLTRACE("Attempting to load plugins...\n");
+	ATLTRACE("PotatoAPO: Attempting to load plugins...");
 
 	HANDLE hFind;
 	WIN32_FIND_DATAA data;
 	std::string dllFilename = "*.dll";
-	std::string dynamicProcessDllFullPath = dynamicProcessDllPath + dllFilename;
+	std::string dllFullFilePath = dllParentPath + dllFilename;
 
-	hFind = FindFirstFileA(dynamicProcessDllFullPath.c_str(), &data);
+	hFind = FindFirstFileA(dllFullFilePath.c_str(), &data);
 	if (hFind != INVALID_HANDLE_VALUE) {
-		dynamicProcessDllFullPath.clear();
-		dynamicProcessDllFullPath = dynamicProcessDllPath;
-		dynamicProcessDllFullPath += data.cFileName;
-		ATLTRACE("\nLockForProcess: PotatoEffect: Found DLL at %s\n", dynamicProcessDllFullPath.c_str());
+		do {
+			// Skip if it's a directory
+			if (!(data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
+				dllFullFilePath.clear();
+				dllFullFilePath = dllParentPath;
+				dllFullFilePath += data.cFileName;
+				dllFiles.push_back(dllFullFilePath);
+			}
+		} while (FindNextFileA(hFind, &data) != 0); // Continue until no more files are found
+		ATLTRACE("\nLockForProcess: PotatoEffect: Found DLLs at %s", dllParentPath);
 		FindClose(hFind);
 	}
-	pluginManager.loadPlugin(dynamicProcessDllFullPath);
+
+	// Load all available plugins by iterating through all DLL plugins found.
+	for (auto& dll : dllFiles) {
+		pluginManager.loadPlugin(dll);
+	}
 
 	// Create a new context for processing pipeline
-	context = std::make_unique<ProcessContext>();
-	context->numChannels = outFormat.dwSamplesPerFrame; // Number of channels
+	context.numChannels = outFormat.dwSamplesPerFrame; // Number of channels
 
 	return hr;
 }
@@ -135,9 +144,8 @@ HRESULT PotatoAPO::LockForProcess(UINT32 u32NumInputConnections,
 HRESULT PotatoAPO::UnlockForProcess()
 {
 	// Reset the context and unload all plugins on unlock
-	context.reset();
 	pluginManager.unloadAllPlugins();
-	ATLTRACE("\nUnlockForProcess: PotatoEffect: Unloaded all processing DLLs\n");
+	ATLTRACE("\nUnlockForProcess: PotatoEffect: Unloaded all processing DLLs");
 	return CBaseAudioProcessingObject::UnlockForProcess();
 }
 
@@ -150,15 +158,15 @@ void PotatoAPO::APOProcess(UINT32 u32NumInputConnections,
 	{
 	case BUFFER_VALID:
 		{
-			context->inputFrames = reinterpret_cast<float*>(ppInputConnections[0]->pBuffer);
-			context->outputFrames = reinterpret_cast<float*>(ppOutputConnections[0]->pBuffer);
-			context->validFrameCount = ppInputConnections[0]->u32ValidFrameCount;
+			context.inputFrames = reinterpret_cast<float*>(ppInputConnections[0]->pBuffer);
+			context.outputFrames = reinterpret_cast<float*>(ppOutputConnections[0]->pBuffer);
+			context.validFrameCount = ppInputConnections[0]->u32ValidFrameCount;
 
 			if (!pluginManager.getAllPlugins().empty()) {
-				executePipeline(*context);
+				executePipeline();
 			} else {
 				// Copy the input as is to output
-				memcpy(context->outputFrames, context->inputFrames, context->validFrameCount);
+				memcpy(context.outputFrames, context.inputFrames, context.validFrameCount);
 			}
 
 			ppOutputConnections[0]->u32ValidFrameCount = ppInputConnections[0]->u32ValidFrameCount;
@@ -213,13 +221,12 @@ ULONG PotatoAPO::NonDelegatingRelease()
 	return refCount;
 }
 
-void PotatoAPO::executePipeline(ProcessContext& context) {
+void PotatoAPO::executePipeline() {
 	for (IPotatoPlugin* plugin : pluginManager.getAllPlugins()) {
 		if (!plugin) continue;
 
 		PluginStatus status = plugin->process(context);
 		if (status == PluginStatus::FAILURE) {
-			ATLTRACE("Failed processing plugin %s\n", plugin->getName());
 			continue; // Processing failed; skip it and continue to next plugin
 		}
 		// If status is CONTINUE, proceed to the next plugin anyway.
