@@ -3,7 +3,7 @@ This repo creates a Windows APO DLL which can be registered in SFX chain of the 
 
 >**IMPORTANT**
 >
->This DLL does not apply any effects and acts only as an interface. You will need to build and install separate processing plugin DLLs to appropriate paths to hear the audible effects. For a simple example of silencing an audio output, refer to the [silence-example](https://github.com/Dybios/PotatoPlugins/tree/silence-example)
+>This DLL does not apply any effects and acts only as an interface. You will need to build and install separate processing plugin DLLs to appropriate paths to hear the audible effects. For a simple example of silencing an audio output, refer to the project named [Silence](https://github.com/Dybios/PotatoPlugins/tree/main/Silence)
 >demo provided in the PotatoPlugins repository. Follow the steps provided there to build and deploy the DLLs.
 
 Following steps detail the way the PotatoAPO DLL can be registered and unregistered. 
