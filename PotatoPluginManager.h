@@ -24,12 +24,12 @@ typedef void (*DestroyPlugin)(IPotatoPlugin*);
 
 // Structure to hold information about each loaded plugin
 struct LoadedPluginInfo {
-    std::unique_ptr<IPotatoPlugin> pluginInstance; // Manages the plugin object's lifetime
+    IPotatoPlugin* pluginInstance; // Plugin object
     PLUGIN_HANDLE libraryHandle; // Handle to the loaded DLL
     DestroyPlugin destroyerFunc; // Pointer to the plugin's specific destroyer function
 
-    LoadedPluginInfo(std::unique_ptr<IPotatoPlugin> instance, PLUGIN_HANDLE handle, DestroyPlugin d_func)
-        : pluginInstance(std::move(instance)), libraryHandle(handle), destroyerFunc(d_func) {
+    LoadedPluginInfo(IPotatoPlugin* instance, PLUGIN_HANDLE handle, DestroyPlugin destroyer)
+        : pluginInstance(instance), libraryHandle(handle), destroyerFunc(destroyer) {
     }
 };
 
