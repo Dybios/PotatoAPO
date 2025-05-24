@@ -21,7 +21,7 @@ const std::wstring POTATOAPO_GUID = L"{46BB25C9-3D22-4ECE-9481-148C12B0B577}";
 const std::wstring SFX_GUID = L"{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},5";
 const std::wstring MFX_GUID = L"{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},6";
 const std::wstring EFX_GUID = L"{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},7";
-const std::wstring BACKUP_REGPATH = L"SOFTWARE\\PotatoAPO\\Backup\\";
+const std::wstring BACKUP_REGPATH = L"SOFTWARE\\PotatoAPO\\";
 const std::string DLL_NAME = "PotatoAPO.dll";
 
 std::wstring s2ws(const std::string& str) {
@@ -210,7 +210,6 @@ int main() {
                 originalData.data(),
                 &dataSize
             );
-
             if (lResult != ERROR_SUCCESS) {
                 RegCloseKey(hKeyFxProp);
                 CoUninitialize();
@@ -226,8 +225,6 @@ int main() {
                 originalData.data(),
                 originalData.size()
             );
-
-            // Check if writing the value was successful
             if (lResult != ERROR_SUCCESS) {
                 RegCloseKey(hKeyBackup); // Close the registry key before exiting
                 CoUninitialize();
@@ -237,7 +234,24 @@ int main() {
             std::cout << std::endl << "Backed up original APO keys to \"HKEY_CURRENT_USER\\" << ws2s(BACKUP_REGPATH) << "\" successfully." << std::endl;
         }
         else {
-            std::cout << std::endl << "No SFX value present. Continuing to set the SFX registry value." << std::endl;
+            std::cout << std::endl << "No previous " << targetApo << " value found. Directly setting the registry value." << std::endl;
+        }
+
+        // Set which APO key was the effect installed to (used for uninstallation)
+        std::wstring apoChainInfo = L"PotatoApoChain";
+        std::wstring wTargetApo = s2ws(targetApo);
+        lResult = RegSetValueEx(
+            hKeyBackup,
+            apoChainInfo.c_str(),
+            0,
+            REG_SZ,
+            (const BYTE*)wTargetApo.c_str(),
+            (wTargetApo.size() + 1) * sizeof(WCHAR)
+        );
+        if (lResult != ERROR_SUCCESS) {
+            RegCloseKey(hKeyBackup);
+            CoUninitialize();
+            goto exit;
         }
 
         /** Write the registry key with our GUID value **/

@@ -112,6 +112,11 @@
       <ModuleDefinitionFile>PotatoAPO.def</ModuleDefinitionFile>
       <AdditionalDependencies>AudioBaseProcessingObject.lib;audiomediatypecrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>mkdir $(ProjectDir)\BuildPackage
+copy /Y ".\$(PlatformName)\$(Configuration)\$(TargetFileName)" "$(ProjectDir)\BuildPackage"
+copy /Y "$(ProjectDir)\Setup\*.exe" "$(ProjectDir)BuildPackage"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -152,6 +157,11 @@
       <ModuleDefinitionFile>PotatoAPO.def</ModuleDefinitionFile>
       <AdditionalDependencies>AudioBaseProcessingObject.lib;audiomediatypecrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>mkdir $(ProjectDir)\BuildPackage
+copy /Y ".\$(PlatformName)\$(Configuration)\$(TargetFileName)" "$(ProjectDir)\BuildPackage"
+copy /Y "$(ProjectDir)\Setup\*.exe" "$(ProjectDir)BuildPackage"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ClassFactory.cpp" />
