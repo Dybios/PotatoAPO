@@ -6,6 +6,27 @@ This repo creates a Windows APO DLL which can be registered in SFX chain of the 
 >This DLL does not apply any effects and acts only as an interface. You will need to build and install separate processing plugin DLLs to appropriate paths to hear the audible effects. For a simple example of silencing an audio output, refer to the project named [Silence](https://github.com/Dybios/PotatoPlugins/tree/main/Silence)
 >demo provided in the PotatoPlugins repository. Follow the steps provided there to build and deploy the DLLs.
 
+### Installation Guide
+
+To install, go to the [Releases](https://github.com/Dybios/PotatoAPO/releases) page and download the latest `BuildPackage.zip` file. This contains the installer executable that will let you install the steps in an automated way. If you are an advanced user and know what you are doing, you can skip to use the [Advanced Installation Guide](#advanced-installation-guide) down below.
+
+Steps to install:
+1. Extract `BuildPackage.zip` to any location of your choice.
+2. Run the `PotatoInstaller.exe`. Choose your endpoint and the location of your APO chain you want to install on (choose SFX, if you are unsure).
+3. Once complete, you'll be notified on the terminal screen that it has been successfully installed.
+4. Reboot the system to apply the changes.
+
+Steps to uninstall:
+1. Run the `PotatoUninstaller.exe` file given in the same ZIP package.
+2. Once complete, you'll be notified on the terminal screen that it has been successfully uninstalled.
+3. Reboot the system to apply the changes.
+
+----
+
+----
+
+### Advanced Installation Guide
+
 Following steps detail the way the PotatoAPO DLL can be registered and unregistered. 
 
 NOTE: Please make sure to backup the registry key and its values before making any changes.
@@ -31,3 +52,4 @@ NOTE: Please make sure to backup the registry key and its values before making a
    and remove the value named DisableProtectedAudioDG to reenable APO signature checking.
 3. Unregister the APO by opening a command shell with Administrator privileges
    in the build directory (e.g. x64\Debug) and typing `regsvr32 /u PotatoAPO.dll`
+
