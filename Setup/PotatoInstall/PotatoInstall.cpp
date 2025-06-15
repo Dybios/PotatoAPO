@@ -14,15 +14,22 @@ struct AudioDevice {
     std::wstring name;
 };
 
-HRESULT EnumerateCaptureEndpoints(std::vector<AudioDevice>& devices);
+HRESULT EnumerateAllEndpoints(std::vector<AudioDevice>& devices, bool isCapture);
 std::string ExtractGuidFromEndpointId(const std::wstring& fullEndpointId);
 
-const std::wstring POTATOAPO_GUID = L"{46BB25C9-3D22-4ECE-9481-148C12B0B577}";
-const std::wstring SFX_GUID = L"{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},5";
-const std::wstring MFX_GUID = L"{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},6";
-const std::wstring EFX_GUID = L"{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},7";
-const std::wstring BACKUP_REGPATH = L"SOFTWARE\\PotatoAPO\\";
-const std::string DLL_NAME = "PotatoAPO.dll";
+constexpr const wchar_t* POTATOAPO_GUID = L"{46BB25C9-3D22-4ECE-9481-148C12B0B577}";
+constexpr const wchar_t* SFX_GUID = L"{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},5";
+constexpr const wchar_t* MFX_GUID = L"{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},6";
+constexpr const wchar_t* EFX_GUID = L"{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},7";
+constexpr const wchar_t* COMPOSITESFX_GUID = L"{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},13";
+constexpr const wchar_t* COMPOSITEMFX_GUID = L"{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},14";
+constexpr const wchar_t* COMPOSITEEFX_GUID = L"{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},15";
+constexpr const wchar_t* COMPOSITEOSFX_GUID = L"{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},19";
+constexpr const wchar_t* COMPOSITEOMFX_GUID = L"{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},20";
+constexpr const wchar_t* BACKUP_REGPATH = L"SOFTWARE\\PotatoAPO\\";
+constexpr const char* DLL_NAME = "PotatoAPO.dll";
+constexpr const wchar_t* disableAudioDgPath = L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Audio";
+constexpr const wchar_t* disableAudioDgKey = L"DisableProtectedAudioDG";
 
 std::wstring s2ws(const std::string& str) {
     std::wstring temp;
@@ -44,44 +51,37 @@ int main() {
     HKEY hKeyFxProp = NULL;
     HKEY hKeyBackup = NULL;
     DWORD dwDisposition;
+    DWORD dataSize = 0;
     LONG lResult;
-
-    /** Prep: Copy all deps to ProgramData for installation **/
-    std::filesystem::path sourceFile = ".\\" + DLL_NAME;
-    std::filesystem::path destinationDir = "C:\\ProgramData\\PotatoAPO\\";
-
-    try {
-        if (!std::filesystem::exists(sourceFile)) {
-            return 1;
-        }
-        if (!std::filesystem::exists(destinationDir)) {
-            std::filesystem::create_directories(destinationDir);
-        }
-        std::filesystem::path destinationFile = destinationDir / sourceFile.filename();
-        std::filesystem::copy(sourceFile, destinationFile, std::filesystem::copy_options::overwrite_existing);
-    }
-    catch (const std::filesystem::filesystem_error& ex) {
-        return 1;
-    }
-
-    // Register the PotatoAPO DLL
-    std::wstring command = L"regsvr32.exe";
-    std::wstring params = L"/s \"" + s2ws((destinationDir.string() + DLL_NAME)) + L"\"";
-    HINSTANCE hInst = ShellExecuteW(
-        NULL,
-        NULL,
-        command.c_str(),
-        params.c_str(),
-        NULL,
-        SW_HIDE
-    );
+    int disableAudioDGvalue = 1;
+    std::wstring command, params;
+    HINSTANCE hInst;
 
     HRESULT ret = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
     if (SUCCEEDED(ret)) {
+        int choice = -1;
+        bool isCapture = false;
+        std::cout << "1. Output (Render)\n2. Input (Capture)\n";
+        std::cout << "\nSelect which endpoint type to apply effects to: " << std::endl;
+        std::cin >> choice;
+
+        switch (choice) {
+        case 1:
+            isCapture = false; // Render endpoint type selected
+            break;
+        case 2:
+            isCapture = true; // Capture endpoint type selected
+            break;
+        default:
+            std::cerr << "Invalid selection." << std::endl;
+            CoUninitialize();
+            return 1;
+        }
+
         // Enumerate all capture endpoints
-        std::vector<AudioDevice> captureDevices;
-        std::cout << "\nAvailable Audio Capture Endpoints:" << std::endl;
-        auto res = EnumerateCaptureEndpoints(captureDevices);
+        std::vector<AudioDevice> devices;
+        std::cout << "\nAvailable Audio Endpoints:" << std::endl;
+        auto res = EnumerateAllEndpoints(devices, isCapture);
         if (FAILED(res)) {
             std::cerr << "Error enumerating capture endpoints: " << res << std::endl;
             CoUninitialize();
@@ -89,27 +89,27 @@ int main() {
         }
 
         // List all and get user input of their desired endpoint
-        for (size_t i = 0; i < captureDevices.size(); ++i) {
-            wprintf(L"%zu: %ls\n", i + 1, captureDevices[i].name.c_str());
+        for (size_t i = 0; i < devices.size(); ++i) {
+            wprintf(L"%zu: %ls\n", i + 1, devices[i].name.c_str());
         }
 
-        int choice = -1;
+        choice = -1;
         std::cout << "Select the endpoint you want to install PotatoAPO on: ";
         std::cin >> choice;
 
-        if (std::cin.fail() || choice < 1 || choice > static_cast<int>(captureDevices.size())) {
+        if (std::cin.fail() || choice < 1 || choice > static_cast<int>(devices.size())) {
             std::cerr << "Invalid selection." << std::endl;
             CoUninitialize();
             return 1;
         }
 
-        if (captureDevices.empty()) {
-            std::cout << "No audio capture devices found." << std::endl;
+        if (devices.empty()) {
+            std::cout << "No audio devices found." << std::endl;
             CoUninitialize();
             return 1;
         }
 
-        AudioDevice selectedDevice = captureDevices[choice - 1];
+        AudioDevice selectedDevice = devices[choice - 1];
         std::string audioEndpointGuidStr = ExtractGuidFromEndpointId(selectedDevice.id);
         std::cout << "Endpoint selected: " << ws2s(selectedDevice.name) << std::endl;
         std::cout << "Device ID: " << audioEndpointGuidStr << std::endl << std::endl;
@@ -126,16 +126,18 @@ int main() {
             return 1;
         }
 
-        std::wstring targetApoGuid = SFX_GUID;
+        std::wstring targetApoGuid, targetApoGuidOffload;
         std::string targetApo;
         switch (apoChoice) {
         case 1:
             targetApo = "SFX";
-            targetApoGuid = SFX_GUID;
+            targetApoGuid = COMPOSITESFX_GUID;
+            targetApoGuidOffload = COMPOSITEOSFX_GUID;
             break;
         case 2:
             targetApo = "MFX";
-            targetApoGuid = MFX_GUID;
+            targetApoGuid = COMPOSITEMFX_GUID;
+            targetApoGuidOffload = COMPOSITEOMFX_GUID;
             break;
         case 3:
             targetApo = "EFX";
@@ -146,15 +148,53 @@ int main() {
         }
 
         // Construct the full Capture registry path
-        std::string subKeyPath = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\MMDevices\\Audio\\Capture\\";
+        std::string subKeyPath = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\MMDevices\\Audio\\";
+        if (isCapture) {
+            subKeyPath += "Capture\\";
+        }
+        else {
+            subKeyPath += "Render\\";
+        }
         subKeyPath += audioEndpointGuidStr; // Append the user-provided audio endpoint GUID
         subKeyPath += "\\FxProperties";
         std::wstring wSubKeyPath = s2ws(subKeyPath);
+        std::wcout << L"Selected Endpoint Registry: " << wSubKeyPath << std::endl;
 
         // Construct the full backup registry path
         std::wstring backupRegPath = BACKUP_REGPATH + s2ws(audioEndpointGuidStr);
         DWORD originalDataType = 0;
         std::vector<BYTE> originalData;
+
+        /** Prep: Done doing housekeeping, now copy all deps to ProgramData for installation **/
+        std::filesystem::path sourceFile = DLL_NAME;
+        std::filesystem::path destinationDir = "C:\\ProgramData\\PotatoAPO\\";
+
+        try {
+            if (!std::filesystem::exists(sourceFile)) {
+                return 1;
+            }
+            if (!std::filesystem::exists(destinationDir)) {
+                std::filesystem::create_directories(destinationDir);
+            }
+            std::filesystem::path destinationFile = destinationDir / sourceFile.filename();
+            std::filesystem::copy(sourceFile, destinationFile, std::filesystem::copy_options::overwrite_existing);
+        }
+        catch (const std::filesystem::filesystem_error& ex) {
+            system("pause");
+            return 1;
+        }
+
+        // Register the PotatoAPO DLL
+        command = L"regsvr32.exe";
+        params = L"/s \"" + s2ws((destinationDir.string() + DLL_NAME)) + L"\"";
+        hInst = ShellExecuteW(
+            NULL,
+            NULL,
+            command.c_str(),
+            params.c_str(),
+            NULL,
+            SW_HIDE
+        );
 
         /** 1. Create/Open the new backup registry key in **/
         lResult = RegCreateKeyEx(
@@ -190,7 +230,6 @@ int main() {
 
         /** 3. Backup existing GUID keys from the the selected APO of the selected endpoint GUID **/
         std::cout << "Attempting to backup existing registry value..." << std::endl;
-        DWORD dataSize = 0;
         lResult = RegQueryValueEx(
             hKeyFxProp,
             targetApoGuid.c_str(),
@@ -231,6 +270,51 @@ int main() {
                 goto exit;
             }
 
+            if (!targetApoGuidOffload.empty()) {
+                // Backup the offload registries as well if not empty
+                originalData.clear();
+                lResult = RegQueryValueEx(
+                    hKeyFxProp,
+                    targetApoGuidOffload.c_str(),
+                    NULL,
+                    &originalDataType,
+                    NULL,
+                    &dataSize
+                );
+                if (lResult == ERROR_SUCCESS) {
+                    // Allocate buffer and get the data
+                    originalData.resize(dataSize);
+                    lResult = RegQueryValueEx(
+                        hKeyFxProp,
+                        targetApoGuidOffload.c_str(),
+                        NULL,
+                        &originalDataType,
+                        originalData.data(),
+                        &dataSize
+                    );
+                    if (lResult != ERROR_SUCCESS) {
+                        RegCloseKey(hKeyFxProp);
+                        CoUninitialize();
+                        goto exit;
+                    }
+
+                    // Set the data to the backup registry path **/
+                    lResult = RegSetValueEx(
+                        hKeyBackup,
+                        targetApoGuidOffload.c_str(),
+                        0,
+                        originalDataType,
+                        originalData.data(),
+                        originalData.size()
+                    );
+                    if (lResult != ERROR_SUCCESS) {
+                        RegCloseKey(hKeyBackup); // Close the registry key before exiting
+                        CoUninitialize();
+                        goto exit;
+                    }
+                }
+            }
+
             std::cout << std::endl << "Backed up original APO keys to \"HKEY_CURRENT_USER\\" << ws2s(BACKUP_REGPATH) << "\" successfully." << std::endl;
         }
         else {
@@ -255,6 +339,25 @@ int main() {
         }
 
         /** Write the registry key with our GUID value **/
+        std::vector<std::wstring> multiStrings;
+        multiStrings.push_back(POTATOAPO_GUID); // Future-proof for when we want to append the GUIDs
+
+        size_t totalBufferSize = 0;
+        for (const auto& s : multiStrings) {
+            totalBufferSize += (s.size() + 1); // +1 for the null terminator of each string
+        }
+        totalBufferSize += 1; // +1 for the final double-null terminator
+
+        // Buffer to hold the combined multi-string data
+        std::vector<WCHAR> multiSzBuffer(totalBufferSize);
+        WCHAR* currentPtr = multiSzBuffer.data();
+
+        for (const auto& s : multiStrings) {
+            wcscpy_s(currentPtr, multiSzBuffer.size() - (currentPtr - multiSzBuffer.data()), s.c_str());
+            currentPtr += (s.size() + 1);
+        }
+        *currentPtr = L'\0';
+
         std::cout << std::endl << "Installing PotatoAPO..." << std::endl;
         lResult = RegCreateKeyEx(
             HKEY_LOCAL_MACHINE,
@@ -277,18 +380,63 @@ int main() {
             hKeyFxProp,
             targetApoGuid.c_str(),
             0,
-            REG_SZ,
-            (const BYTE*)POTATOAPO_GUID.c_str(),
-            (POTATOAPO_GUID.size() + 1) * sizeof(WCHAR)
+            REG_MULTI_SZ,
+            (const BYTE*)multiSzBuffer.data(),
+            multiSzBuffer.size() * sizeof(WCHAR)
         );
+        if (lResult != ERROR_SUCCESS) {
+            RegCloseKey(hKeyFxProp); // Close the registry key before exiting
+            CoUninitialize();
+            goto exit;
+        }
 
-        // Check if writing the value was successful
+        // Set our GUID to its offload pin as well
+        lResult = RegSetValueEx(
+            hKeyFxProp,
+            targetApoGuidOffload.c_str(),
+            0,
+            REG_MULTI_SZ,
+            (const BYTE*)multiSzBuffer.data(),
+            multiSzBuffer.size() * sizeof(WCHAR)
+        );
         if (lResult != ERROR_SUCCESS) {
             RegCloseKey(hKeyFxProp); // Close the registry key before exiting
             CoUninitialize();
             goto exit;
         }
         std::cout << std::endl << "Successfully installed PotatoAPO." << std::endl;
+
+        // Disable the protected key to run unsigned APOs
+        lResult = RegCreateKeyEx(
+            HKEY_LOCAL_MACHINE,
+            disableAudioDgPath,
+            0,
+            NULL,
+            REG_OPTION_NON_VOLATILE,
+            KEY_SET_VALUE,
+            NULL,
+            &hKeyFxProp,
+            NULL
+        );
+        if (lResult != ERROR_SUCCESS) {
+            RegCloseKey(hKeyFxProp);
+            CoUninitialize();
+            goto exit;
+        }
+
+        lResult = RegSetValueEx(
+            hKeyFxProp,
+            disableAudioDgKey,
+            0,
+            REG_DWORD,
+            (const BYTE*)&disableAudioDGvalue,
+            sizeof(disableAudioDGvalue)
+        );
+        if (lResult != ERROR_SUCCESS) {
+            RegCloseKey(hKeyFxProp);
+            CoUninitialize();
+            goto exit;
+        }
 
         RegCloseKey(hKeyFxProp);
         RegCloseKey(hKeyBackup);
@@ -313,7 +461,7 @@ exit:
     return 0;
 }
 
-HRESULT EnumerateCaptureEndpoints(std::vector<AudioDevice>& devices) {
+HRESULT EnumerateAllEndpoints(std::vector<AudioDevice>& devices, bool isCapture) {
     IMMDeviceEnumerator* pEnumerator = NULL;
     IMMDeviceCollection* pCollection = NULL;
     IMMDevice* pDevice = NULL;
@@ -336,12 +484,22 @@ HRESULT EnumerateCaptureEndpoints(std::vector<AudioDevice>& devices) {
         return hr;
     }
 
-    // Get the collection of audio capture endpoints
-    hr = pEnumerator->EnumAudioEndpoints(
-        eCapture,         // Enumerate capture devices
-        DEVICE_STATE_ACTIVE, // Only active devices
-        &pCollection
-    );
+    if (isCapture) {
+        // Get the collection of audio capture endpoints
+        hr = pEnumerator->EnumAudioEndpoints(
+            eCapture,         // Enumerate capture devices
+            DEVICE_STATE_ACTIVE, // Only active devices
+            &pCollection
+        );
+    }
+    else {
+        // Get the collection of audio render endpoints
+        hr = pEnumerator->EnumAudioEndpoints(
+            eRender,         // Enumerate render devices
+            DEVICE_STATE_ACTIVE, // Only active devices
+            &pCollection
+        );
+    }
 
     if (FAILED(hr)) {
         std::cerr << "EnumAudioEndpoints failed: " << hr << std::endl;

@@ -166,7 +166,13 @@ void PotatoAPO::APOProcess(UINT32 u32NumInputConnections,
 				executePipeline();
 			} else {
 				// Copy the input as is to output
-				memcpy(context.outputFrames, context.inputFrames, context.validFrameCount);
+				for (unsigned i = 0; i < context.validFrameCount; i++)
+				{
+					for (unsigned j = 0; j < context.numChannels; j++)
+					{
+						context.outputFrames[i * context.numChannels + j] = context.inputFrames[i * context.numChannels + j];
+					}
+				}
 			}
 
 			ppOutputConnections[0]->u32ValidFrameCount = ppInputConnections[0]->u32ValidFrameCount;
